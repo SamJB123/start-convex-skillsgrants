@@ -1,0 +1,37 @@
+{
+  "name": "tanstack-solid-start-example-convex-better-auth",
+  "private": true,
+  "sideEffects": false,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "convex:dev": "convex dev",
+    "build": "echo 'Skipped: waiting for dependency Solid 2.0 support' && exit 0",
+    "preview": "vite preview",
+    "start": "pnpx srvx --prod -s ../client dist/server/server.js"
+  },
+  "dependencies": {
+    "@convex-dev/better-auth": "^0.12.2",
+    "@solidjs/web": "2.0.0-beta.14",
+    "@tailwindcss/vite": "^4.2.2",
+    "@tanstack/solid-router": "^2.0.0-beta.18",
+    "@tanstack/solid-router-devtools": "^2.0.0-beta.14",
+    "@tanstack/solid-start": "^2.0.0-beta.19",
+    "better-auth": "^1.6.9",
+    "clsx": "^2.1.1",
+    "convex": "^1.28.2",
+    "redaxios": "^0.5.1",
+    "solid-js": "2.0.0-beta.14",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss": "^4.2.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "combinate": "^1.1.11",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.0",
+    "vite-plugin-solid": "^3.0.0-next.5",
+    "vite-tsconfig-paths": "^5.1.4"
+  }
+}
