@@ -6,9 +6,6 @@ import {
   toServerSentEventsResponse,
   toolDefinition,
 } from '@tanstack/ai'
-import { anthropicText } from '@tanstack/ai-anthropic'
-import { createCodeTool, tanstackTools } from '@cloudflare/codemode/tanstack-ai'
-import { DynamicWorkerExecutor } from '@cloudflare/codemode'
 import { z } from 'zod'
 import { SECTION_BY_ID } from '~/library/coach/sections'
 import { EVALUATION_CRITERIA } from '~/library/grant/data'
@@ -62,6 +59,17 @@ export const Route = createFileRoute('/api/coach-suggest')({
         // chatParamsFromRequestBody validates the AG-UI payload itself.
         const params = await chatParamsFromRequestBody(await request.json())
 
+        // Lazy-load the Anthropic adapter + Code Mode only when this handler
+        // runs, keeping the heavy CommonJS SDKs out of the eager worker graph
+        // (a static import pulls them into the route-tree chunk and crashes SSR
+        // for every route).
+        const [{ anthropicText }, { createCodeTool, tanstackTools }, { DynamicWorkerExecutor }] =
+          await Promise.all([
+            import('@tanstack/ai-anthropic'),
+            import('@cloudflare/codemode/tanstack-ai'),
+            import('@cloudflare/codemode'),
+          ])
+
         const executor = new DynamicWorkerExecutor({
           loader: env.LOADER,
           globalOutbound: null,
@@ -77,6 +85,9 @@ export const Route = createFileRoute('/api/coach-suggest')({
           tools: [codeTool],
           outputSchema: SuggestionsSchema,
           stream: true,
+          // Above the adapter's 1024-token default so the suggestions stream
+          // isn't truncated mid-JSON (which would never complete).
+          modelOptions: { max_tokens: 16000 },
           systemPrompts: [SUGGEST_PROMPT],
           threadId: params.threadId,
           runId: params.runId,

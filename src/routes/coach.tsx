@@ -9,6 +9,7 @@ import {
   type CoachSection,
 } from '~/library/coach/sections'
 import { buildInterviewInstructions } from '~/library/coach/schema'
+import type { ApplicationDraft } from '~/library/coach/schema'
 import { buildSeedSummary } from '~/library/coach/seed'
 import { useRealtime, type CoverageStatus } from '~/library/coach/use-realtime'
 import type { VoiceProvider } from '~/library/coach/collections'
@@ -32,6 +33,30 @@ type ResumeInfo = {
   concepts: string[]
 }
 
+type SavedDraft = { id: string; updatedAt: number; round: number; preview: string }
+
+// A short, human preview for a saved draft: the first non-empty point text.
+function draftPreview(draftJson: string): string {
+  try {
+    const d = JSON.parse(draftJson) as ApplicationDraft
+    for (const s of d.sections) {
+      const p = s.points.find((pt) => pt.text?.trim())
+      if (p) return p.text
+    }
+  } catch {
+    /* ignore malformed */
+  }
+  return 'Draft in progress'
+}
+
+function fmtDate(ms: number): string {
+  return new Date(ms).toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
 function RouteComponent() {
   const search = Route.useSearch()
   const navigate = useNavigate()
@@ -41,6 +66,7 @@ function RouteComponent() {
   const [started, setStarted] = createSignal(false)
   const [dismissedOvertime, setDismissedOvertime] = createSignal(false)
   const [resumeInfo, setResumeInfo] = createSignal<ResumeInfo | null>(null)
+  const [drafts, setDrafts] = createSignal<SavedDraft[]>([])
 
   const isResumeLink = () => Boolean(search().resume)
 
@@ -63,10 +89,18 @@ function RouteComponent() {
         await continueSession(s.resume, s.focus)
         return
       }
-      // Otherwise look for an interrupted conversation to offer resuming.
+      // Landing: surface saved drafts to reopen, and offer to resume any
+      // interrupted conversation.
       try {
-        const { findUnfinishedSession, loadSessionContent } = await import(
-          '~/library/coach/collections'
+        const { findUnfinishedSession, loadSessionContent, listDrafts } =
+          await import('~/library/coach/collections')
+        setDrafts(
+          (await listDrafts()).map((d) => ({
+            id: d.id,
+            updatedAt: d.updatedAt,
+            round: d.round,
+            preview: draftPreview(d.draftJson ?? ''),
+          })),
         )
         const found = await findUnfinishedSession()
         if (!found) return
@@ -235,6 +269,38 @@ function RouteComponent() {
             </div>
           </section>
         )}
+      </Show>
+
+      {/* ---------- Reopen a saved draft ---------- */}
+      <Show when={!started() && !isResumeLink() && drafts().length > 0}>
+        <section class="mx-auto mt-6 max-w-2xl rounded-2xl bg-white p-6 shadow-sm md:p-8">
+          <h2 class="text-xl font-bold text-[var(--gov-navy)]">Your saved drafts</h2>
+          <p class="mt-1 text-sm text-[var(--gov-muted)]">
+            Stored privately on this device — pick up exactly where you left off.
+          </p>
+          <ul class="mt-4 divide-y divide-gray-100">
+            <For each={drafts()}>
+              {(d) => (
+                <li class="flex items-center justify-between gap-3 py-3">
+                  <div class="min-w-0">
+                    <p class="truncate text-[var(--gov-ink)]">{d.preview}</p>
+                    <p class="text-xs text-[var(--gov-muted)]">
+                      Updated {fmtDate(d.updatedAt)}
+                      {d.round > 1 ? ` · round ${d.round}` : ''}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate({ to: '/draft', search: { session: d.id } })}
+                    class="shrink-0 rounded-lg bg-[var(--gov-blue)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--gov-navy-700)]"
+                  >
+                    Open draft →
+                  </button>
+                </li>
+              )}
+            </For>
+          </ul>
+        </section>
       </Show>
 
       {/* ---------- Consent / privacy gate ---------- */}

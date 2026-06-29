@@ -31,8 +31,9 @@ export default function LoginSignupForm() {
         })
       }
 
+      // Refresh the Convex client's auth token fetcher; the header reflects the
+      // new session reactively via useSession (no invalidation needed).
       refreshAuth()
-
       navigate({ to: '/dashboard' })
     } catch (err: any) {
       setError(err?.message || 'An error occurred')

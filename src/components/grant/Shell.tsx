@@ -1,6 +1,7 @@
 import { For, Show } from 'solid-js'
 import type { JSX } from '@solidjs/web'
-import { Link, useRouteContext } from '@tanstack/solid-router'
+import { Link } from '@tanstack/solid-router'
+import { useSession } from '~/library/use-session'
 
 const NAV = [
   { to: '/', label: 'Home' },
@@ -13,11 +14,15 @@ const NAV = [
 // an unmissable "independent tool" disclaimer (we use a government look but are
 // NOT an official service), and accessible navigation/footer.
 export default function GrantShell(props: { children: JSX.Element }) {
-  // Auth state for the nav comes from the root route's beforeLoad `token`, which
-  // is resolved on the server (from cookies) and serialized to the client. So
-  // SSR renders the correct link and the client hydrates to identical markup —
-  // no client-only gate, no mismatch. Updates on navigation after sign-in/out.
-  const context = useRouteContext({ from: '__root__' })
+  // Auth state for the nav comes from the live, client-reactive session (the
+  // same `useSession` the dashboard uses). It seeds `null` on the server AND on
+  // the first client paint, so SSR and hydration render identically (no
+  // mismatch); then it subscribes post-hydration and flips the instant
+  // sign-in/sign-out resolves — no navigation, invalidation, or reload needed.
+  // (The route-context `token` is server-resolved and only changes when the
+  // root beforeLoad re-runs, so it can't reflect a client-side sign-in.)
+  const session = useSession()
+  const isAuthed = () => Boolean(session().data?.user)
 
   return (
     <div class="min-h-screen bg-[var(--gov-bg)]">
@@ -56,7 +61,7 @@ export default function GrantShell(props: { children: JSX.Element }) {
               )}
             </For>
             <Show
-              when={context().token}
+              when={isAuthed()}
               fallback={
                 <Link
                   to="/signin"

@@ -1,7 +1,5 @@
 import { createFileRoute } from '@tanstack/solid-router'
 import { realtimeToken } from '@tanstack/ai'
-import { openaiRealtimeToken } from '@tanstack/ai-openai'
-import { elevenlabsRealtimeToken } from '@tanstack/ai-elevenlabs'
 
 // Mints a short-lived ephemeral realtime token on the Worker, so the real
 // provider API key never reaches the browser. The browser uses the returned
@@ -10,10 +8,15 @@ import { elevenlabsRealtimeToken } from '@tanstack/ai-elevenlabs'
 // Provider is selectable (?provider=openai|elevenlabs):
 //   - openai     → reads OPENAI_API_KEY        (model bound into the token)
 //   - elevenlabs → reads ELEVENLABS_API_KEY + ELEVENLABS_AGENT_ID
+// Lazy-load the provider adapters (each pulls a heavy CommonJS SDK) only when
+// minting, keeping them out of the eager worker graph that the route tree
+// evaluates on every request.
 async function mintToken(provider: string) {
   if (provider === 'elevenlabs') {
+    const { elevenlabsRealtimeToken } = await import('@tanstack/ai-elevenlabs')
     return realtimeToken({ adapter: elevenlabsRealtimeToken() })
   }
+  const { openaiRealtimeToken } = await import('@tanstack/ai-openai')
   return realtimeToken({ adapter: openaiRealtimeToken({ model: 'gpt-realtime' }) })
 }
 

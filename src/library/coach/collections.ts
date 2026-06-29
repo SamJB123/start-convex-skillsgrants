@@ -208,6 +208,16 @@ export async function getSession(sessionId: string): Promise<CoachSession | null
   return all.find((s) => s.id === sessionId) ?? null
 }
 
+// All drafting efforts that have a built draft (most recent first), so the user
+// can reopen a saved draft later — it lives on this device, never regenerated.
+export async function listDrafts(): Promise<CoachSession[]> {
+  const { sessions } = await getCoachDb()
+  const all = await sessions.toArrayWhenReady()
+  return all
+    .filter((s) => Boolean(s.draftJson))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
 // Save the built/edited draft JSON onto the session (status → 'review').
 export async function saveDraft(sessionId: string, draftJson: string, round: number) {
   const { sessions } = await getCoachDb()

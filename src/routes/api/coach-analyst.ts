@@ -1,6 +1,5 @@
 import { createFileRoute } from '@tanstack/solid-router'
 import { chat } from '@tanstack/ai'
-import { anthropicText } from '@tanstack/ai-anthropic'
 import { z } from 'zod'
 import { AnalystResultSchema, buildAnalystPrompt } from '~/library/coach/analyst'
 
@@ -22,9 +21,16 @@ export const Route = createFileRoute('/api/coach-analyst')({
           return Response.json({ facts: [], leads: [] })
         }
 
+        // Lazy-load the Anthropic adapter (pulls @anthropic-ai/sdk) inside the
+        // handler so the heavy CommonJS SDK stays out of the eager worker graph.
+        const { anthropicText } = await import('@tanstack/ai-anthropic')
+
         const result = await chat({
           adapter: anthropicText(MODEL),
           outputSchema: AnalystResultSchema,
+          // Above the adapter's 1024-token default so facts + leads + nudge
+          // aren't truncated (which would fail the parse and drop the analysis).
+          modelOptions: { max_tokens: 4000 },
           systemPrompts: [buildAnalystPrompt()],
           messages: [{ role: 'user', content: transcript }],
         })

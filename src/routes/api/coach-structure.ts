@@ -4,7 +4,6 @@ import {
   chatParamsFromRequestBody,
   toServerSentEventsResponse,
 } from '@tanstack/ai'
-import { anthropicText } from '@tanstack/ai-anthropic'
 import { z } from 'zod'
 import { ALL_SECTIONS } from '~/library/coach/sections'
 import {
@@ -49,11 +48,21 @@ export const Route = createFileRoute('/api/coach-structure')({
           priorDraftJson,
         })
 
+        // Lazy-load the Anthropic adapter (which pulls @anthropic-ai/sdk) only
+        // when this handler runs — keeping the heavy SDK out of the eager worker
+        // graph. (Statically importing it pulls the CommonJS-laden SDK into the
+        // route-tree's eager chunk, which crashes SSR for every route.)
+        const { anthropicText } = await import('@tanstack/ai-anthropic')
+
         const abortController = new AbortController()
         const stream = chat({
           adapter: anthropicText(MODEL),
           outputSchema: ApplicationDraftSchema,
           stream: true,
+          // The full draft (12 sections × points × verbatim quotes) far exceeds
+          // the adapter's 1024-token default — which truncates the JSON mid-
+          // stream, so the structured output never completes and the UI stalls.
+          modelOptions: { max_tokens: 32000 },
           threadId: params.threadId,
           runId: params.runId,
           systemPrompts: [system],
