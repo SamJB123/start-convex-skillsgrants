@@ -1,5 +1,10 @@
 
 .env.local
+.dev.vars
 /.agents
 /node_modules
-/node_modules
+
+# Build / deploy artifacts
+/dist
+/.wrangler
+/.tanstack

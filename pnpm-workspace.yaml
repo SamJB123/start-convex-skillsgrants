@@ -1,0 +1,8 @@
+# pnpm build-script policy. `workerd` (the Cloudflare runtime binary) and
+# `esbuild` ship native binaries the build/deploy toolchain needs, so their
+# install scripts are allowed.
+allowBuilds:
+  '@journeyapps/wa-sqlite': false
+  esbuild: true
+  sharp: false
+  workerd: true

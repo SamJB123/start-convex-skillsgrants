@@ -9,12 +9,52 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SummaryRouteImport } from './routes/summary'
+import { Route as SigninRouteImport } from './routes/signin'
+import { Route as GlossaryRouteImport } from './routes/glossary'
+import { Route as DraftRouteImport } from './routes/draft'
+import { Route as CoachRouteImport } from './routes/coach'
+import { Route as CheckRouteImport } from './routes/check'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiRealtimeTokenRouteImport } from './routes/api/realtime-token'
+import { Route as ApiCoachSuggestRouteImport } from './routes/api/coach-suggest'
+import { Route as ApiCoachStructureRouteImport } from './routes/api/coach-structure'
+import { Route as ApiCoachAnalystRouteImport } from './routes/api/coach-analyst'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
+const SummaryRoute = SummaryRouteImport.update({
+  id: '/summary',
+  path: '/summary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigninRoute = SigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GlossaryRoute = GlossaryRouteImport.update({
+  id: '/glossary',
+  path: '/glossary',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DraftRoute = DraftRouteImport.update({
+  id: '/draft',
+  path: '/draft',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CoachRoute = CoachRouteImport.update({
+  id: '/coach',
+  path: '/coach',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckRoute = CheckRouteImport.update({
+  id: '/check',
+  path: '/check',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -27,6 +67,26 @@ const AuthedRoute = AuthedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRealtimeTokenRoute = ApiRealtimeTokenRouteImport.update({
+  id: '/api/realtime-token',
+  path: '/api/realtime-token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCoachSuggestRoute = ApiCoachSuggestRouteImport.update({
+  id: '/api/coach-suggest',
+  path: '/api/coach-suggest',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCoachStructureRoute = ApiCoachStructureRouteImport.update({
+  id: '/api/coach-structure',
+  path: '/api/coach-structure',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCoachAnalystRoute = ApiCoachAnalystRouteImport.update({
+  id: '/api/coach-analyst',
+  path: '/api/coach-analyst',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
@@ -43,13 +103,33 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/check': typeof CheckRoute
+  '/coach': typeof CoachRoute
+  '/draft': typeof DraftRoute
+  '/glossary': typeof GlossaryRoute
+  '/signin': typeof SigninRoute
+  '/summary': typeof SummaryRoute
   '/dashboard': typeof AuthedDashboardRoute
+  '/api/coach-analyst': typeof ApiCoachAnalystRoute
+  '/api/coach-structure': typeof ApiCoachStructureRoute
+  '/api/coach-suggest': typeof ApiCoachSuggestRoute
+  '/api/realtime-token': typeof ApiRealtimeTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/check': typeof CheckRoute
+  '/coach': typeof CoachRoute
+  '/draft': typeof DraftRoute
+  '/glossary': typeof GlossaryRoute
+  '/signin': typeof SigninRoute
+  '/summary': typeof SummaryRoute
   '/dashboard': typeof AuthedDashboardRoute
+  '/api/coach-analyst': typeof ApiCoachAnalystRoute
+  '/api/coach-structure': typeof ApiCoachStructureRoute
+  '/api/coach-suggest': typeof ApiCoachSuggestRoute
+  '/api/realtime-token': typeof ApiRealtimeTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -57,20 +137,68 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
   '/about': typeof AboutRoute
+  '/check': typeof CheckRoute
+  '/coach': typeof CoachRoute
+  '/draft': typeof DraftRoute
+  '/glossary': typeof GlossaryRoute
+  '/signin': typeof SigninRoute
+  '/summary': typeof SummaryRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
+  '/api/coach-analyst': typeof ApiCoachAnalystRoute
+  '/api/coach-structure': typeof ApiCoachStructureRoute
+  '/api/coach-suggest': typeof ApiCoachSuggestRoute
+  '/api/realtime-token': typeof ApiRealtimeTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/dashboard' | '/api/auth/$'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/check'
+    | '/coach'
+    | '/draft'
+    | '/glossary'
+    | '/signin'
+    | '/summary'
+    | '/dashboard'
+    | '/api/coach-analyst'
+    | '/api/coach-structure'
+    | '/api/coach-suggest'
+    | '/api/realtime-token'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/dashboard' | '/api/auth/$'
+  to:
+    | '/'
+    | '/about'
+    | '/check'
+    | '/coach'
+    | '/draft'
+    | '/glossary'
+    | '/signin'
+    | '/summary'
+    | '/dashboard'
+    | '/api/coach-analyst'
+    | '/api/coach-structure'
+    | '/api/coach-suggest'
+    | '/api/realtime-token'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
     | '/_authed'
     | '/about'
+    | '/check'
+    | '/coach'
+    | '/draft'
+    | '/glossary'
+    | '/signin'
+    | '/summary'
     | '/_authed/dashboard'
+    | '/api/coach-analyst'
+    | '/api/coach-structure'
+    | '/api/coach-suggest'
+    | '/api/realtime-token'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -78,11 +206,63 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
   AboutRoute: typeof AboutRoute
+  CheckRoute: typeof CheckRoute
+  CoachRoute: typeof CoachRoute
+  DraftRoute: typeof DraftRoute
+  GlossaryRoute: typeof GlossaryRoute
+  SigninRoute: typeof SigninRoute
+  SummaryRoute: typeof SummaryRoute
+  ApiCoachAnalystRoute: typeof ApiCoachAnalystRoute
+  ApiCoachStructureRoute: typeof ApiCoachStructureRoute
+  ApiCoachSuggestRoute: typeof ApiCoachSuggestRoute
+  ApiRealtimeTokenRoute: typeof ApiRealtimeTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/solid-router' {
   interface FileRoutesByPath {
+    '/summary': {
+      id: '/summary'
+      path: '/summary'
+      fullPath: '/summary'
+      preLoaderRoute: typeof SummaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/glossary': {
+      id: '/glossary'
+      path: '/glossary'
+      fullPath: '/glossary'
+      preLoaderRoute: typeof GlossaryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/draft': {
+      id: '/draft'
+      path: '/draft'
+      fullPath: '/draft'
+      preLoaderRoute: typeof DraftRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/coach': {
+      id: '/coach'
+      path: '/coach'
+      fullPath: '/coach'
+      preLoaderRoute: typeof CoachRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/check': {
+      id: '/check'
+      path: '/check'
+      fullPath: '/check'
+      preLoaderRoute: typeof CheckRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about': {
       id: '/about'
       path: '/about'
@@ -102,6 +282,34 @@ declare module '@tanstack/solid-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/realtime-token': {
+      id: '/api/realtime-token'
+      path: '/api/realtime-token'
+      fullPath: '/api/realtime-token'
+      preLoaderRoute: typeof ApiRealtimeTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/coach-suggest': {
+      id: '/api/coach-suggest'
+      path: '/api/coach-suggest'
+      fullPath: '/api/coach-suggest'
+      preLoaderRoute: typeof ApiCoachSuggestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/coach-structure': {
+      id: '/api/coach-structure'
+      path: '/api/coach-structure'
+      fullPath: '/api/coach-structure'
+      preLoaderRoute: typeof ApiCoachStructureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/coach-analyst': {
+      id: '/api/coach-analyst'
+      path: '/api/coach-analyst'
+      fullPath: '/api/coach-analyst'
+      preLoaderRoute: typeof ApiCoachAnalystRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed/dashboard': {
@@ -136,6 +344,16 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
   AboutRoute: AboutRoute,
+  CheckRoute: CheckRoute,
+  CoachRoute: CoachRoute,
+  DraftRoute: DraftRoute,
+  GlossaryRoute: GlossaryRoute,
+  SigninRoute: SigninRoute,
+  SummaryRoute: SummaryRoute,
+  ApiCoachAnalystRoute: ApiCoachAnalystRoute,
+  ApiCoachStructureRoute: ApiCoachStructureRoute,
+  ApiCoachSuggestRoute: ApiCoachSuggestRoute,
+  ApiRealtimeTokenRoute: ApiRealtimeTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

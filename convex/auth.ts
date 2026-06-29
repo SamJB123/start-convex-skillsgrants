@@ -16,6 +16,9 @@ export const authComponent = createClient<DataModel>(components.betterAuth)
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth({
     baseURL: siteUrl,
+    // Trust both the deployed site (SITE_URL) and local dev, so sign-in works
+    // in both places even though one Convex deployment serves both.
+    trustedOrigins: [siteUrl, 'http://localhost:3000'],
     database: authComponent.adapter(ctx),
     // Configure simple, non-verified email/password to get started
     emailAndPassword: {

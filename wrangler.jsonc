@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "act-vet-grants-helper",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-05-08",
+  // `nodejs_compat` gives us Node built-ins (crypto, etc.) that Convex +
+  // Better Auth rely on, AND — with this compat date — populates `process.env`
+  // from the `vars`/secrets below, which is how the server code reads config
+  // at runtime (see src/library/auth-server.ts).
+  "compatibility_flags": ["nodejs_compat"],
+
+  "observability": { "enabled": true },
+
+  // Worker Loader binding for Code Mode's server-side DynamicWorkerExecutor
+  // (runs LLM-generated edit/analysis code in isolated dynamic Workers).
+  // Dynamic Workers require the Workers Paid plan.
+  "worker_loaders": [{ "binding": "LOADER" }],
+
+  // Public Convex endpoints the server entry needs at RUNTIME. These are not
+  // secrets (they're the same URLs the browser hits), so they live here rather
+  // than in `wrangler secret`. The `VITE_`-prefixed names match what the code
+  // reads (src/library/auth-server.ts).
+  //
+  // Must match VITE_CONVEX_URL in .env.local so the client bundle and the
+  // runtime SSR talk to the same Convex deployment.
+  "vars": {
+    "VITE_CONVEX_URL": "https://tough-leopard-726.convex.cloud",
+    "VITE_CONVEX_SITE_URL": "https://tough-leopard-726.convex.site"
+  }
+}
