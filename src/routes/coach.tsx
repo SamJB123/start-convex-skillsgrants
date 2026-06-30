@@ -273,7 +273,13 @@ function RouteComponent() {
 
       {/* ---------- Reopen a saved draft ---------- */}
       <Show when={!started() && !isResumeLink() && drafts().length > 0}>
-        <section class="mx-auto mt-6 max-w-2xl rounded-2xl bg-white p-6 shadow-sm md:p-8">
+        {/* Top margin only when the resume card sits above it (else it's the first card). */}
+        <section
+          class={[
+            'mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow-sm md:p-8',
+            { 'mt-6': Boolean(resumeInfo()) },
+          ]}
+        >
           <h2 class="text-xl font-bold text-[var(--gov-navy)]">Your saved drafts</h2>
           <p class="mt-1 text-sm text-[var(--gov-muted)]">
             Stored privately on this device — pick up exactly where you left off.
@@ -305,7 +311,13 @@ function RouteComponent() {
 
       {/* ---------- Consent / privacy gate ---------- */}
       <Show when={!started() && !isResumeLink() && !resumeInfo()}>
-        <section class="mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow-sm md:p-8">
+        {/* Top margin only when the saved-drafts card sits above it. */}
+        <section
+          class={[
+            'mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow-sm md:p-8',
+            { 'mt-6': drafts().length > 0 },
+          ]}
+        >
           <div class="flex items-start justify-between gap-2">
             <h1 class="text-3xl font-bold text-[var(--gov-navy)]">
               Talk it through with your coach

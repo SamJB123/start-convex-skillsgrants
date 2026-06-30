@@ -18,6 +18,15 @@ function RootDocument(props: { children: JSX.Element }) {
   return (
     <html>
       <head>
+        <meta charset="utf-8" />
+        {/*
+          Without this, mobile browsers assume a ~980px desktop layout viewport
+          and shrink the whole page to fit — so a phone shows desktop
+          proportions and the Tailwind `sm:`/`md:` breakpoints never engage.
+          `width=device-width` maps CSS px to the device. We intentionally do
+          NOT pin `maximum-scale`, so pinch-zoom still works (WCAG 1.4.4).
+        */}
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
         {/*
           Render the stylesheet as a static child of the shell `<head>` rather
           than via the route's `head()`/`<HeadContent>`. Under Solid 2,
