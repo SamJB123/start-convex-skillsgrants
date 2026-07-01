@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Two-Model Realtime Coaching Pattern</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --ink:#1a2232; --muted:#61708a; --line:#e4e8f0;
+    --card:#ffffff; --shadow:0 10px 30px rgba(24,39,75,.08);
+    --voice:#0d9aa6; --voice-bg:#e6f7f8;
+    --brain:#7c5cff; --brain-bg:#efeaff;
+    --user:#475569;  --user-bg:#eef1f6;
+    --ui:#e08a00;    --ui-bg:#fff3e0;
+    --bridge:#5b6b86;
+    --key:#7c5cff;
+    --radius:16px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:radial-gradient(1200px 700px at 70% -10%, #eef1ff 0%, var(--bg) 55%) fixed;
+    color:var(--ink); line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--brain)}
+  .wrap{max-width:1160px; margin:0 auto; padding:26px 20px 80px}
+
+  header.top{display:flex; flex-wrap:wrap; gap:18px; align-items:flex-end; justify-content:space-between; margin-bottom:8px}
+  .title h1{font-size:clamp(22px,3.4vw,32px); margin:0 0 4px; letter-spacing:-.02em}
+  .title p{margin:0; color:var(--muted); max-width:56ch}
+  .kicker{display:inline-block; font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--brain); margin-bottom:8px}
+
+  .controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+  .seg{display:inline-flex; background:#eaeef6; border-radius:12px; padding:4px; gap:4px}
+  .seg button{border:0; background:transparent; padding:8px 14px; border-radius:9px; font-weight:600; font-size:14px; color:var(--muted); cursor:pointer; transition:.15s}
+  .seg button.on{background:#fff; color:var(--ink); box-shadow:0 2px 8px rgba(24,39,75,.12)}
+  .btn{border:0; cursor:pointer; font-weight:700; font-size:14px; padding:11px 18px; border-radius:12px; transition:.15s; box-shadow:var(--shadow)}
+  .btn.primary{background:linear-gradient(180deg,#8a6bff,#6a45f7); color:#fff}
+  .btn.primary:hover{filter:brightness(1.06)}
+  .btn.ghost{background:#fff; color:var(--ink); box-shadow:inset 0 0 0 1px var(--line)}
+
+  .legend{display:flex; flex-wrap:wrap; gap:14px 18px; align-items:center; margin:16px 0 6px; font-size:13px; color:var(--muted)}
+  .legend .lg{display:inline-flex; align-items:center; gap:7px}
+  .dot{width:12px;height:12px;border-radius:50%}
+  .legend .chan{margin-left:auto; display:flex; gap:10px; flex-wrap:wrap}
+  .pill{display:inline-flex; align-items:center; gap:7px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:5px 11px; font-size:12.5px; color:var(--ink)}
+  .pill b{font-weight:700}
+  .pill .swatch{width:22px;height:0;border-top:3px solid var(--key)}
+  .pill.silent .swatch{border-top-style:dashed; border-color:#94a3b8}
+  .pill.spoken .swatch{border-top-style:solid; border-color:var(--voice)}
+
+  /* ---- Stage ---- */
+  .stagewrap{margin-top:10px; overflow-x:auto; padding-bottom:6px}
+  .stage{
+    position:relative; width:100%; min-width:820px; max-width:1120px; margin:0 auto;
+    aspect-ratio:1000/640; container-type:inline-size;
+    background:linear-gradient(180deg,#ffffff, #fbfcff);
+    border:1px solid var(--line); border-radius:22px; box-shadow:var(--shadow); overflow:hidden;
+  }
+  .band{position:absolute; left:0; right:0; pointer-events:none}
+  .band .lab{position:absolute; left:14px; top:8px; font-size:11.5px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; opacity:.75}
+  .band.rt{top:3.5%; height:47%; background:linear-gradient(180deg, rgba(13,154,166,.06), rgba(13,154,166,0)); }
+  .band.rt .lab{color:var(--voice)}
+  .band.rs{top:56%; height:41%; background:linear-gradient(180deg, rgba(124,92,255,.07), rgba(124,92,255,0));}
+  .band.rs .lab{color:var(--brain)}
+
+  svg.edges{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+  .edge{fill:none; stroke:#c3ccdb; stroke-width:2; stroke-dasharray:2 7; stroke-linecap:round; opacity:.9; transition:.25s}
+  .edge.post{stroke:#c9b6e6}
+  .edge.key{stroke:var(--key); stroke-width:2.6; stroke-dasharray:7 7; opacity:.55}
+  .edge.on{opacity:1; stroke-width:3.4; animation:flow 1s linear infinite}
+  .edge.on.key{stroke:var(--key)}
+  .edge.dim{opacity:.16}
+  @keyframes flow{to{stroke-dashoffset:-32}}
+  .elab{font:600 12.5px system-ui,sans-serif; fill:#6b7891; paint-order:stroke; stroke:#fff; stroke-width:4px; stroke-linejoin:round; transition:.2s}
+  .elab.on{fill:var(--ink)}
+  .elab.dim{opacity:.12}
+
+  /* ---- Nodes ---- */
+  #nodes{position:absolute; inset:0}
+  .node{
+    position:absolute; text-align:left; cursor:pointer; border:0; padding:0;
+    background:transparent; transition:transform .18s ease, filter .18s;
+  }
+  .node .card{
+    width:100%; height:100%; background:var(--card); border-radius:14px;
+    box-shadow:0 6px 16px rgba(24,39,75,.10); border:1px solid var(--line);
+    padding:9cqw; padding:1.05cqw 1.2cqw; display:flex; flex-direction:column; gap:.25cqw;
+    position:relative; overflow:hidden; transition:.18s;
+  }
+  .node .card::before{content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--accent)}
+  .node .role{font-size:.95cqw; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--accent)}
+  .node .name{font-size:1.55cqw; font-weight:750; letter-spacing:-.01em; line-height:1.15}
+  .node .sub{font-size:1.05cqw; color:var(--muted); line-height:1.3}
+  .node[data-kind=voice]{--accent:var(--voice)}
+  .node[data-kind=brain]{--accent:var(--brain)}
+  .node[data-kind=user]{--accent:var(--user)}
+  .node[data-kind=ui]{--accent:var(--ui)}
+  .node[data-kind=bridge]{--accent:var(--bridge)}
+  .node:hover{transform:translateY(-2px)}
+  .node:hover .card{box-shadow:0 12px 26px rgba(24,39,75,.16)}
+  .node.active{transform:translateY(-2px) scale(1.035); z-index:5}
+  .node.active .card{box-shadow:0 0 0 3px var(--accent), 0 16px 34px rgba(24,39,75,.20)}
+  .node.dim{filter:grayscale(.5) opacity(.42)}
+  .node .tag{position:absolute; right:.6cqw; top:.6cqw; font-size:.9cqw; font-weight:800; color:#fff; background:var(--accent); border-radius:999px; padding:.15cqw .6cqw}
+
+  /* ---- Detail / tour panel ---- */
+  .panel{
+    margin-top:18px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); overflow:hidden;
+  }
+  .panel .head{display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .panel .head .badge{font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:#fff; background:var(--accent,#7c5cff); padding:5px 10px; border-radius:8px}
+  .panel .head h2{margin:0; font-size:20px; letter-spacing:-.01em}
+  .panel .head .mode{margin-left:auto; font-size:12px; color:var(--muted); font-weight:600}
+  .panel .body{padding:18px 20px}
+  .panel .body p{margin:0; font-size:16.5px}
+  .panel .body .tech{margin-top:10px; font-size:14.5px; color:#33405a; background:#f7f8fc; border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; line-height:1.5; white-space:normal}
+  .panel .body .tech b{color:var(--ink)}
+  code{background:#eef1f8; padding:.08em .4em; border-radius:6px; font-size:.92em; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+
+  .tour-chrome{display:none; align-items:center; gap:14px; padding:14px 20px; border-top:1px solid var(--line); background:#faf9ff; flex-wrap:wrap}
+  .tour-on .tour-chrome{display:flex}
+  .tour-chrome .dots{display:flex; gap:6px; flex-wrap:wrap; margin:0 auto}
+  .tour-chrome .dots i{width:8px;height:8px;border-radius:50%; background:#d5d9e6; cursor:pointer; transition:.15s}
+  .tour-chrome .dots i.done{background:#b9a9f2}
+  .tour-chrome .dots i.cur{background:var(--brain); transform:scale(1.5)}
+  .tour-chrome .count{font-size:13px; font-weight:700; color:var(--brain)}
+  .tour-hint{display:none}
+  .tour-on .tour-hint{display:inline}
+  .idle-hint{color:var(--muted); font-size:13px}
+  .tour-on .idle-hint{display:none}
+
+  footer{margin-top:26px; color:var(--muted); font-size:13px; text-align:center; line-height:1.6}
+  .grid2{display:grid; grid-template-columns:1fr; gap:0}
+
+  @media (max-width:640px){
+    .panel .body p{font-size:15.5px}
+    .btn,.seg button{font-size:13px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="title">
+      <span class="kicker">Realtime AI · Architecture explainer</span>
+      <h1>The Two-Model Realtime Coaching Pattern</h1>
+      <p>A fast, warm <b>voice model</b> holds the conversation. A slower, deeper <b>reasoning model</b> listens in the background and quietly passes it notes. Click any box, or take the guided tour.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" id="audience" role="tablist" aria-label="Audience">
+        <button data-mode="plain" class="on" role="tab">Plain English</button>
+        <button data-mode="tech" role="tab">Technical</button>
+      </div>
+      <button class="btn primary" id="tourBtn">▶ Start guided tour</button>
+    </div>
+  </header>
+
+  <div class="legend">
+    <span class="lg"><span class="dot" style="background:var(--user)"></span> The applicant</span>
+    <span class="lg"><span class="dot" style="background:var(--voice)"></span> Voice model (the mouth)</span>
+    <span class="lg"><span class="dot" style="background:var(--brain)"></span> Reasoning model (the brain)</span>
+    <span class="lg"><span class="dot" style="background:var(--ui)"></span> What the user sees</span>
+    <span class="chan">
+      <span class="pill silent"><span class="swatch"></span><b>Silent note</b> — no spoken turn</span>
+      <span class="pill spoken"><span class="swatch"></span><b>Spoken</b> — makes it talk</span>
+    </span>
+  </div>
+
+  <div class="stagewrap">
+    <div class="stage" id="stage">
+      <div class="band rt"><span class="lab">Real-time lane · fast · feels human</span></div>
+      <div class="band rs"><span class="lab">Reasoning lane · background · thinks deep</span></div>
+      <svg class="edges" viewBox="0 0 1000 640" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/>
+          </marker>
+        </defs>
+        <g id="edgeLayer"></g>
+        <g id="edgeLabels"></g>
+      </svg>
+      <div id="nodes"></div>
+    </div>
+  </div>
+
+  <section class="panel" id="panel">
+    <div class="head">
+      <span class="badge" id="pBadge">Overview</span>
+      <h2 id="pTitle">The big idea</h2>
+      <span class="mode" id="pMode">Plain English</span>
+    </div>
+    <div class="body">
+      <p id="pPlain"></p>
+      <div class="tech" id="pTech" hidden></div>
+      <p class="idle-hint" style="margin-top:14px">Tip: click any box in the diagram to learn what it does — or press <b>Start guided tour</b> for a step-by-step walkthrough.</p>
+    </div>
+    <div class="tour-chrome">
+      <button class="btn ghost" id="prevBtn">‹ Back</button>
+      <span class="count" id="tourCount">Step 1</span>
+      <div class="dots" id="tourDots"></div>
+      <button class="btn ghost" id="exitBtn">Exit tour</button>
+      <button class="btn primary" id="nextBtn">Next ›</button>
+    </div>
+  </section>
+
+  <footer>
+    A conceptual illustration of the coaching pattern in this repo (<code>src/library/coach/</code>). Fully self-contained — save this file and open it anywhere.<br>
+    Voice: OpenAI <code>gpt-realtime</code> over WebRTC · Reasoning: Anthropic Claude · Bridge: <code>session.update</code> (silent) vs <code>sendText</code> (spoken).
+  </footer>
+
+</div>
+
+<script>
+//---------------------------------------------------------------------------
+// Content: one topic per box / tour stop, in two registers.
+//---------------------------------------------------------------------------
+const TOPICS = {
+  bigidea:{ badge:"Overview", title:"The big idea: two AIs, one conversation",
+    plain:"Two AIs work as a team. One is a quick, warm <b>talker</b> that chats with you live — it reflects back what you say and asks one good question at a time. The other is a deeper <b>thinker</b> that quietly listens to the whole conversation, works out what really matters and what's still missing, and slips helpful notes to the talker. The result feels natural <i>and</i> genuinely insightful — like talking to someone who has a wise producer whispering in their earpiece.",
+    tech:"A realtime speech model (<b>OpenAI gpt-realtime</b>, WebRTC) owns turn-taking and low-latency audio. A reasoning model (<b>Claude</b>) runs <b>off-thread</b> on the accumulating transcript and returns strategic guidance, which is injected into the voice model's <b>live session instructions</b>. You decouple a latency-bound conversational surface from a compute-bound strategist — each runs at its own cadence." },
+
+  applicant:{ badge:"The applicant", title:"You just talk",
+    plain:"You speak out loud, like a normal chat — no forms, no jargon, no 'right answer'. For many people that's far easier than writing, especially under pressure.",
+    tech:"Browser mic → WebRTC audio track sent straight to the voice provider. An <b>ephemeral token</b> is minted server-side (<code>realtime-token.ts</code>) so the provider API key never reaches the client; audio never round-trips through our server." },
+
+  coach:{ badge:"Voice model · the mouth", title:"The voice coach — fast and warm",
+    plain:"A friendly voice coach listens and replies instantly. Its only job is to be a <b>great conversationalist</b>: reflect back what you said so you feel heard, ask one focused question, keep you talking. It stays quick precisely because it isn't trying to do the heavy thinking — that's handled elsewhere.",
+    tech:"A <code>RealtimeClient</code> wraps the OpenAI realtime adapter with base coaching instructions, semantic VAD (low eagerness), a voice, and one client tool. Two channels feed it: <b>spoken</b> cues via <code>sendText()</code> (used only for the opening greeting and the sign-off — these create a turn and make it talk) and <b>silent</b> guidance via <code>session.update</code> (everything else). Keeping the two straight is what stops it blurting out its notes." },
+
+  capture:{ badge:"What the user sees", title:"captureNote — quietly jotting key points",
+    plain:"As you speak, the coach silently jots down 2–5 word 'key points' and marks which parts of your application are now covered. It never reads these out — but you'll watch them appear on screen. That's the quiet proof that you're being heard.",
+    tech:"<code>captureNote</code> is a <b>client-side tool</b> (<code>tools.ts</code>) the model calls continuously as it listens. Each call updates local state (notes + per-section coverage) and <b>returns a coverage summary back to the model</b>, so it always knows what's still thin and can steer toward gaps — closing the loop on an otherwise fire-and-forget tool." },
+
+  coverage:{ badge:"What the user sees", title:"The coverage board",
+    plain:"A simple board of dots (grey → amber → green) and little bubble 'bricks' of what's been captured. No intimidating live transcript — just gentle, visible reassurance that the conversation is going somewhere real.",
+    tech:"Pure UI state driven by <code>captureNote</code> calls, grouped into the four scored criteria and the project-plan fields. The same captured concepts later seed <b>resume</b> (\"you've mentioned X, Y, Z — pick up naturally\") for multi-round conversations." },
+
+  transcript:{ badge:"Shared memory", title:"The running transcript",
+    plain:"Everything said — by you and the coach — is quietly kept, on your own device. This is the shared memory both AIs draw on.",
+    tech:"Finalised utterances persist to <b>OPFS</b> as they arrive, so a refresh, crash, or dropped connection leaves a <i>recoverable</i> session, not a lost one. Private director cues are excluded. <code>buildTranscript()</code> formats Coach/Applicant turns for the analyst." },
+
+  debounce:{ badge:"Reasoning lane · trigger", title:"Wait for a pause, then think",
+    plain:"The thinker never butts in mid-sentence. It waits until you've finished a thought — a couple of seconds of settling — before it does its analysis. Interrupt-free by design.",
+    tech:"Each genuine applicant turn <b>(re)arms a 2.5s debounced timer</b>; rapid speech coalesces into a single pass. Skipped while paused or if an analysis is already running. Director cues don't count as turns, so private nudges never trigger it." },
+
+  analyst:{ badge:"Reasoning model · the brain", title:"Claude reads the whole story",
+    plain:"A slower, smarter AI reads the <b>entire</b> conversation so far — including things you said minutes apart — and connects the dots. It works out the useful facts, what's still missing, and the <b>single best thing</b> to gently explore next. This cross-conversation synthesis is exactly what a fast voice model can't do well.",
+    tech:"<code>POST /api/coach-analyst</code> runs Claude with a <b>structured-output schema</b>: it returns <code>facts</code> and <code>leads</code> (each keyed to a plan field <i>and</i> a scored criterion) plus one <code>nextNudge</code>. One-shot, non-streaming, <b>best-effort</b> — any failure is swallowed so the live call is never disrupted." },
+
+  guidance:{ badge:"The key trick", title:"Passing the note — silently",
+    plain:"Here's the magic. The thinker's note is slipped to the coach <b>without making it stop and talk</b>. It just appears in the coach's private ear, and the coach naturally works it into its very next question. No awkward pause, no robot reading a memo aloud — just a suddenly sharper question.",
+    tech:"The nudge is pushed via <code>connection.updateSession()</code> — a <code>session.update</code> that rewrites the live instructions with <b>no conversation item and no response trigger</b>. Contrast <code>sendText()</code>, which <i>does</i> create a turn and force speech. The update appends a <code>[LIVE FACILITATION NOTES — do not read aloud]</code> block and re-asserts voice/VAD so the partial update never clobbers turn-taking. Timing warnings ride the same silent channel." },
+
+  loop:{ badge:"The payoff", title:"The loop closes — a smarter question",
+    plain:"The coach now asks a sharper, better-timed question — as if a wise producer were in its earpiece. To you, it simply feels like an unusually good listener. This whole cycle repeats after every turn you take, steering the chat toward whatever your application still needs.",
+    tech:"The model absorbs the injected notes at its <b>next natural turn</b>. The find→think→whisper cycle repeats each applicant turn, continuously nudging coverage toward thin plan-fields and under-evidenced criteria — background cognition steering a realtime agent, without ever breaking presence." },
+
+  structuring:{ badge:"After the call", title:"Turning talk into a faithful draft",
+    plain:"When you're done, the same deep thinker turns everything you said into a tidy first draft — in your own words, <b>never inventing anything</b>, with a receipt for every point tracing back to what you actually said. You review and edit; nothing is put in your mouth.",
+    tech:"A separate Claude pass (<code>buildStructuringSystemPrompt</code>) maps the transcript into application sections under hard rules: <b>faithful-only</b>, and every authored point carries <b>verbatim provenance</b> (<code>quote</code> + <code>startTime</code>). An UPDATE mode merges later rounds while preserving hand-edited points." },
+
+  why:{ badge:"Why it works", title:"Why this beats a voice bot alone",
+    plain:"A voice bot on its own is either quick-but-shallow or smart-but-laggy. Splitting the two jobs gives you <b>both</b>: the warmth and speed of live voice, plus the insight of a model that's genuinely thinking. That combination is why it feels like unusually good, guided listening — active, patient, and always one thoughtful step ahead.",
+    tech:"The reusable idea: <b>decouple the realtime agent from the reasoning</b>, and bridge them with a <i>silent</i> instruction-update channel. Any realtime voice/agent app can adopt it — a background model (planner, retriever, safety checker, domain expert) shapes the live agent's next move by editing its session context, never by hijacking the mic. Latency stays low; intelligence scales independently." },
+};
+
+//---------------------------------------------------------------------------
+// Diagram geometry (1000 x 640 coordinate space).
+//---------------------------------------------------------------------------
+const NODES = [
+  {id:"applicant",  kind:"user",   x:34,  y:112, w:168, h:92,  role:"Applicant", name:"You speak", sub:"just talk, out loud"},
+  {id:"coach",      kind:"voice",  x:410, y:74,  w:212, h:150, role:"Voice model · the mouth", name:"Voice coach", sub:"OpenAI gpt-realtime · fast & warm", tag:"live"},
+  {id:"coverage",   kind:"ui",     x:800, y:96,  w:172, h:118, role:"You see", name:"Coverage board", sub:"dots + key-point bricks"},
+  {id:"capture",    kind:"ui",     x:648, y:250, w:150, h:70,  role:"Tool", name:"captureNote()", sub:"quiet key points"},
+  {id:"transcript", kind:"bridge", x:410, y:250, w:190, h:70,  role:"Shared memory", name:"Running transcript", sub:"kept on-device"},
+  {id:"debounce",   kind:"brain",  x:206, y:432, w:180, h:78,  role:"Trigger", name:"Wait 2.5s", sub:"after your turn ends"},
+  {id:"analyst",    kind:"brain",  x:440, y:418, w:214, h:126, role:"Reasoning model · the brain", name:"Claude analyst", sub:"reads the whole story", tag:"thinks"},
+  {id:"guidance",   kind:"brain",  x:748, y:420, w:216, h:118, role:"The key trick", name:"Silent note", sub:"session.update · no spoken turn"},
+  {id:"structuring",kind:"brain",  x:30,  y:432, w:168, h:126, role:"After the call", name:"Faithful draft", sub:"provenance on every point"},
+];
+const NODEMAP = Object.fromEntries(NODES.map(n=>[n.id,n]));
+
+const EDGES = [
+  {id:"e1",  cls:"",     d:"M202,152 L406,150", lx:300, ly:140, t:"🎙 speaks"},
+  {id:"e2",  cls:"",     d:"M414,120 C356,58 262,60 176,110", lx:300, ly:64,  t:"🔊 replies"},
+  {id:"e3",  cls:"",     d:"M600,206 C650,224 700,232 722,250", lx:690, ly:224, t:"captureNote()"},
+  {id:"e4",  cls:"",     d:"M798,272 C838,250 858,224 872,216", lx:860, ly:250, t:"bricks + lights"},
+  {id:"e5",  cls:"",     d:"M516,224 L510,250", lx:556, ly:242, t:"each turn"},
+  {id:"e6",  cls:"",     d:"M436,320 C356,368 320,392 312,432", lx:346, ly:398, t:"your turn"},
+  {id:"e7",  cls:"",     d:"M386,470 L436,472", lx:410, ly:462, t:"+2.5s"},
+  {id:"e8",  cls:"",     d:"M654,478 L744,476", lx:700, ly:466, t:"nextNudge"},
+  {id:"e9",  cls:"key",  d:"M854,420 C822,322 720,250 626,196", lx:786, ly:300, t:"whispered in"},
+  {id:"e10", cls:"post", d:"M436,314 C300,346 224,404 202,458", lx:280, ly:392, t:"after the call"},
+];
+const EDGEMAP = Object.fromEntries(EDGES.map(e=>[e.id,e]));
+
+const TOUR = [
+  {topic:"bigidea",   nodes:["coach","analyst"],          edges:["e9"]},
+  {topic:"applicant", nodes:["applicant"],                edges:["e1"]},
+  {topic:"coach",     nodes:["coach"],                    edges:["e1","e2"]},
+  {topic:"capture",   nodes:["capture","coverage"],       edges:["e3","e4"]},
+  {topic:"transcript",nodes:["transcript"],               edges:["e5"]},
+  {topic:"debounce",  nodes:["debounce","transcript"],    edges:["e6","e7"]},
+  {topic:"analyst",   nodes:["analyst"],                  edges:["e7","e8"]},
+  {topic:"guidance",  nodes:["guidance"],                 edges:["e8","e9"]},
+  {topic:"loop",      nodes:["coach","guidance"],         edges:["e9"]},
+  {topic:"structuring",nodes:["structuring"],             edges:["e10"]},
+  {topic:"why",       nodes:["coach","analyst"],          edges:["e9"]},
+];
+// map each node to a tour step index for click->jump when touring
+const NODE_TOUR_STEP = {applicant:1,coach:2,capture:3,coverage:3,transcript:4,debounce:5,analyst:6,guidance:7,structuring:9};
+
+//---------------------------------------------------------------------------
+// Render diagram
+//---------------------------------------------------------------------------
+const nodesEl = document.getElementById('nodes');
+const edgeLayer = document.getElementById('edgeLayer');
+const edgeLabels = document.getElementById('edgeLabels');
+const SVGNS = "http://www.w3.org/2000/svg";
+
+NODES.forEach(n=>{
+  const b=document.createElement('button');
+  b.className='node'; b.dataset.kind=n.kind; b.dataset.id=n.id;
+  b.style.left=(n.x/10)+'%'; b.style.top=(n.y/6.4)+'%';
+  b.style.width=(n.w/10)+'%'; b.style.height=(n.h/6.4)+'%';
+  b.innerHTML=`<div class="card">
+    ${n.tag?`<span class="tag">${n.tag}</span>`:''}
+    <span class="role">${n.role}</span>
+    <span class="name">${n.name}</span>
+    <span class="sub">${n.sub}</span>
+  </div>`;
+  b.addEventListener('click',()=>onNodeClick(n.id));
+  nodesEl.appendChild(b);
+});
+
+EDGES.forEach(e=>{
+  const p=document.createElementNS(SVGNS,'path');
+  p.setAttribute('d',e.d); p.setAttribute('class','edge '+e.cls);
+  p.setAttribute('marker-end','url(#arrow)'); p.dataset.id=e.id;
+  edgeLayer.appendChild(p);
+  const t=document.createElementNS(SVGNS,'text');
+  t.setAttribute('x',e.lx); t.setAttribute('y',e.ly);
+  t.setAttribute('text-anchor','middle'); t.setAttribute('class','elab'); t.dataset.id=e.id;
+  t.textContent=e.t;
+  edgeLabels.appendChild(t);
+});
+
+//---------------------------------------------------------------------------
+// State + rendering
+//---------------------------------------------------------------------------
+let mode='plain';           // 'plain' | 'tech'
+let touring=false;
+let tourIdx=0;
+let currentTopic='bigidea';
+
+function setFocus(nodeIds=[], edgeIds=[]){
+  const hasFocus = nodeIds.length>0;
+  document.querySelectorAll('.node').forEach(el=>{
+    const on=nodeIds.includes(el.dataset.id);
+    el.classList.toggle('active',on);
+    el.classList.toggle('dim',hasFocus && !on);
+  });
+  document.querySelectorAll('.edge').forEach(el=>{
+    const on=edgeIds.includes(el.dataset.id);
+    el.classList.toggle('on',on);
+    el.classList.toggle('dim',hasFocus && !on);
+  });
+  document.querySelectorAll('.elab').forEach(el=>{
+    const on=edgeIds.includes(el.dataset.id);
+    el.classList.toggle('on',on);
+    el.classList.toggle('dim',hasFocus && !on);
+  });
+}
+
+function renderPanel(topicId){
+  currentTopic=topicId;
+  const t=TOPICS[topicId];
+  const accent=getComputedStyle(document.querySelector(`.node[data-id="${firstNodeForTopic(topicId)}"]`)||document.body).getPropertyValue('--accent')||'#7c5cff';
+  document.getElementById('pBadge').textContent=t.badge;
+  document.getElementById('pTitle').textContent=t.title;
+  document.getElementById('pBadge').style.setProperty('--accent',accent);
+  const plain=document.getElementById('pPlain');
+  const tech=document.getElementById('pTech');
+  document.getElementById('pMode').textContent = mode==='plain'?'Plain English':'Technical';
+  if(mode==='plain'){
+    plain.hidden=false; tech.hidden=true; plain.innerHTML=t.plain;
+  }else{
+    plain.hidden=false; tech.hidden=false;
+    plain.innerHTML=t.plain; tech.innerHTML=t.tech;
+  }
+}
+function firstNodeForTopic(topicId){
+  const step=TOUR.find(s=>s.topic===topicId);
+  if(step&&step.nodes.length) return step.nodes[0];
+  return topicId;
+}
+
+//---------------------------------------------------------------------------
+// Interactions
+//---------------------------------------------------------------------------
+function onNodeClick(id){
+  if(touring){ gotoStep(NODE_TOUR_STEP[id] ?? tourIdx); return; }
+  const topic = TOPICS[id] ? id : 'bigidea';
+  renderPanel(topic);
+  // highlight the clicked node + its most relevant edges (from its tour step)
+  const step=TOUR.find(s=>s.nodes.includes(id));
+  setFocus([id], step? step.edges:[]);
+}
+
+// Audience toggle
+document.getElementById('audience').addEventListener('click',e=>{
+  const btn=e.target.closest('button'); if(!btn) return;
+  mode=btn.dataset.mode;
+  document.querySelectorAll('#audience button').forEach(b=>b.classList.toggle('on',b===btn));
+  renderPanel(currentTopic);
+});
+
+// Tour controls
+const panel=document.getElementById('panel');
+const tourBtn=document.getElementById('tourBtn');
+function startTour(){ touring=true; panel.classList.add('tour-on'); tourBtn.textContent='Touring…'; tourBtn.disabled=true; gotoStep(0); panel.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+function exitTour(){ touring=false; panel.classList.remove('tour-on'); tourBtn.textContent='▶ Start guided tour'; tourBtn.disabled=false; setFocus([],[]); renderPanel('bigidea'); }
+function gotoStep(i){
+  tourIdx=Math.max(0,Math.min(TOUR.length-1,i));
+  const s=TOUR[tourIdx];
+  renderPanel(s.topic);
+  setFocus(s.nodes,s.edges);
+  document.getElementById('tourCount').textContent=`Step ${tourIdx+1} / ${TOUR.length}`;
+  document.getElementById('prevBtn').disabled=tourIdx===0;
+  const next=document.getElementById('nextBtn');
+  next.textContent = tourIdx===TOUR.length-1 ? 'Finish ✓' : 'Next ›';
+  renderDots();
+  // focus first node into view within stage (scroll wrapper if needed)
+  const el=document.querySelector(`.node[data-id="${s.nodes[0]}"]`);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'nearest'});
+}
+function renderDots(){
+  const wrap=document.getElementById('tourDots'); wrap.innerHTML='';
+  TOUR.forEach((_,i)=>{
+    const d=document.createElement('i');
+    d.className = i<tourIdx?'done':(i===tourIdx?'cur':'');
+    d.title='Step '+(i+1);
+    d.addEventListener('click',()=>gotoStep(i));
+    wrap.appendChild(d);
+  });
+}
+tourBtn.addEventListener('click',startTour);
+document.getElementById('exitBtn').addEventListener('click',exitTour);
+document.getElementById('prevBtn').addEventListener('click',()=>gotoStep(tourIdx-1));
+document.getElementById('nextBtn').addEventListener('click',()=>{ if(tourIdx===TOUR.length-1) exitTour(); else gotoStep(tourIdx+1); });
+document.addEventListener('keydown',e=>{
+  if(!touring) return;
+  if(e.key==='ArrowRight'){ e.preventDefault(); if(tourIdx===TOUR.length-1) exitTour(); else gotoStep(tourIdx+1); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); gotoStep(tourIdx-1); }
+  if(e.key==='Escape') exitTour();
+});
+
+// initial paint
+renderPanel('bigidea');
+setFocus(['coach','analyst'],['e9']);
+</script>
+</body>
+</html>
